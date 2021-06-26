@@ -124,6 +124,8 @@ with open(inputFile, 'r') as f:         #read input file
             userlog=user
             user = None  
             loggedIn = False
+        elif not loggedIn:		#if not logged in pass operation
+             success = False
         else:
             if operation[1]=="type":                                    #HALO Definition Language Operations
                 if operation[0]=="create":
