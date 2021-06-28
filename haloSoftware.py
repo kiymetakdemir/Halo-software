@@ -42,7 +42,6 @@ def login(username, password):
     
                 
 def createNewFile(typename):
-    
     df = pd.read_csv("SystemCatalog.csv", index_col="type") #get type info
     filenum = df.loc[typename].get("filenum")
     files = df.loc[typename].get("files")
@@ -55,6 +54,20 @@ def createNewFile(typename):
     df.loc[typename, "filenum"] =filenum + 1                #update system catalog
     df.loc[typename, "files"] = files + " " + filename
     df.to_csv("SystemCatalog.csv")
+    
+def deleteLastFile(typename):
+    df = pd.read_csv("SystemCatalog.csv", index_col="type") #get file names
+    files = df.loc[typename].get("files")
+    filelist = files.split()
+    filenum = df.loc[typename].get("filenum")
+    
+    filename = filelist[-1]             #delete file
+    os.remove(filename)
+    
+    df.loc[typename, "filenum"] =filenum - 1                #update system catalog
+    df.loc[typename, "files"] = " ".join(filelist[:-1])
+    df.to_csv("SystemCatalog.csv")
+    
     
 def createSystemFiles():
     col = pd.DataFrame(columns=["type","filenum","files","fieldnum","fields"])
@@ -157,4 +170,3 @@ with open(inputFile, 'r') as f:         #read input file
         log = {"username":[userlog],"occurrence":[str(int(time.time()))],"operation":[command],"status":[status]}
         record = pd.DataFrame(data = log)
         record.to_csv("haloLog.csv", index=False, header=False, mode='a')
-        
