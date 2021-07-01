@@ -45,11 +45,10 @@ def createNewFile(typename):
     df = pd.read_csv("SystemCatalog.csv", index_col="type") #get type info
     filenum = df.loc[typename].get("filenum")
     files = df.loc[typename].get("files")
-    fieldnames = df.loc[typename].get("fields")
     
-    fields = pd.DataFrame(columns = ["planet","id"]+fieldnames.split()) #create file
-    filename = typename+str(filenum)+".csv"
-    fields.to_csv(filename, index=False)
+    #create file
+    filename = typename+str(filenum)+".txt"
+    f = open(filename,'w')
     
     df.loc[typename, "filenum"] =filenum + 1                #update system catalog
     df.loc[typename, "files"] = files + " " + filename
@@ -83,12 +82,12 @@ def createType(operation):
     typename = operation[0]
     fieldnum = operation[1]
     fields = operation[2:]
-    newType = {"type":[typename],"filenum":[1],"files":[typename+"0"+".csv"],"fieldnum":[fieldnum],"fields":[" ".join(operation[2:])]}
+    newType = {"type":[typename],"filenum":[1],"files":[typename+"0.txt"],"fieldnum":[fieldnum],"fields":[" ".join(operation[2:])]}
     data = pd.DataFrame(data=newType)
     data.to_csv("SystemCatalog.csv", mode='a', index=False, header=False)
     
-    fields = pd.DataFrame(columns = ["planet","id"]+fields)
-    fields.to_csv(typename+"0"+".csv", index=False)
+    filename = typename+"0.txt"
+    f = open(filename,'w')
     
 def inheritType(operation):
     newType = operation[0]
