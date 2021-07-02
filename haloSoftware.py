@@ -80,9 +80,9 @@ def createSystemFiles():
    
 def createType(operation):
     typename = operation[0]
-    fieldnum = operation[1]
-    fields = operation[2:]
-    newType = {"type":[typename],"filenum":[1],"files":[typename+"0.txt"],"fieldnum":[fieldnum],"fields":[" ".join(operation[2:])]}
+    fieldnum = int(operation[1])+2
+    fields = ["planet", "id"]+operation[2:]
+    newType = {"type":[typename],"filenum":[1],"files":[typename+"0.txt"],"fieldnum":[fieldnum],"fields":[" ".join(fields)]}
     data = pd.DataFrame(data=newType)
     data.to_csv("SystemCatalog.csv", mode='a', index=False, header=False)
     
@@ -94,9 +94,9 @@ def inheritType(operation):
     oldType = operation[1]
     newFields = operation[2:]
     df = pd.read_csv("SystemCatalog.csv", index_col="type")
-    fields = df.loc[oldType].get("fields")
+    fields = df.loc[oldType].get("fields").split()[2:]
     fieldnum = df.loc[oldType].get("fieldnum") + len(newFields)
-    createType([newType]+[fieldnum]+fields.split()+newFields)
+    createType([newType]+[fieldnum]+fields+newFields)
     
 def deleteType(typeName):
     df = pd.read_csv("SystemCatalog.csv", index_col="type")
