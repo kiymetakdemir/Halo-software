@@ -1,17 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Sun Jun 20 00:14:59 2021
-
-@author: kiymet
-"""
 import pandas as pd
 import os
 import time
 from typing import Counter
+import sys
 
-inputFile = "input.txt"
-outputFile = "output.txt"
+inputFile = sys.argv[1]
+outputFile = sys.argv[2]
 user = None
 loggedIn = True
 success = True
@@ -197,7 +193,6 @@ def searchRecord(type, key):
             page_info = page_header.split(',')
             page_id = page_info[1]
             if page_info[0] == '1': # if page is empty not found since if we come to an empty page there is no need to a further look
-                print("search unsuccesful")
                 break #return
             
             page_entries = page_info[2:] #taken just the entry info
@@ -225,8 +220,19 @@ def searchRecord(type, key):
 
     return -1,-1,-1,-1
 
-
+isadded=[] ## I append all primary keys into this list if the given primary key is already in this list it returns fail
 def addRecord(record_info):
+    global success
+    if(record_info[1] in isadded):
+        
+        success=False
+        
+        return
+        
+
+    else:
+        isadded.append(record_info[1])
+        success=True
 
     
     nextfile=0 ## recordu yerleştiremezsek ve yeni filea geçmek gerekiyorsa 0 kalıcak
@@ -237,7 +243,12 @@ def addRecord(record_info):
 
 
 
+
         file=record_info[0]+str(fileindex)+".txt"
+
+        if(os.path.isfile(file)==False):
+            createNewFile(record_info[0])
+
         tempfile="temp.txt"
         transferrecord="null"
         with open(file, 'r+') as f, open(tempfile, 'w') as myfile2:
@@ -371,10 +382,16 @@ def addRecord(record_info):
 
 
 def deleteRecord(record_info):
-
+    global success
 
     
     a,b,c,d = searchRecord(record_info[0], record_info[1])
+    if(a==-1):
+        success=False
+        return
+    else:
+        isadded.remove(record_info[1])
+        success=True
     file=a
     tempfile="temp1.txt"
     transferrecord="null"
@@ -464,18 +481,26 @@ def deleteRecord(record_info):
                                 checknextfile=1
                                 lines1=[]
 
-                                file1=a[:-5]+str(int(a[-5:-4])+1)+a[-4:] ## find the next file
+                                length=len(record_info[0])
+
+                                file1=a[:-5]+str(int(a[length:-4])+1)+a[-4:] ## find the next file
+
                                 tempfile2="temp2.txt"
+
+                                if(os.path.isfile(file1)==False): ## If there are not a next file we just delete the last entry
+                                    lines[11]=","*11+"\n"
+                                    pageheader[12]="$\n"
+                                    break
+                                     
+                                    
                                 
                                 with open(file1, 'r+') as f1,open(tempfile2, 'w') as myfile3:
 
                                     lines1.extend(f1.readline() for i in range(linecount)) ## read the next file's first page
                                     pageheader1 = lines1[0].split(',')
                                     
-                                    if pageheader1[0]=="1": ## bir sonraki page boşsa
-                                        lines[11]=","*11+"\n"
-                                        pageheader[12]="$\n"
-                                    else:
+                                    
+                                    if(1):
                                         lines[11]=lines1[1] ## take the first line in the next page
                                         pageheader[12]=pageheader1[2]+"\n"
                                         
@@ -560,11 +585,10 @@ def deleteRecord(record_info):
 
 
 def listRecords(type, outfile):
-    global success
     df = pd.read_csv("SystemCatalogue.csv", index_col="type")
     data_files = df.loc[type].get("files").split(" ") #file list
     num_fields = df.loc[type].get("fieldnum") #number of fields
-    count = 0
+
     for i in data_files:
         file = open(i, 'r')
         for j in range(8):
@@ -572,19 +596,171 @@ def listRecords(type, outfile):
             page_header = page_header.strip('\n')
             page_info = page_header.split(',')
             if page_info[0] == '1': # if page is empty not found since if we come to an empty page there is no need to a further look
-                success = False if count == 0 else True
                 return   
             temp = ''
             for k in range(11):
                 record = file.readline()
                 record = record.split(',')
                 if record[0] == '':
-                    success = False if count == 0 else True
                     return
                 outfile.write(organizer(record, num_fields) + '\n')
-                count = count+1
 
- 
+
+
+# type is type name
+# primaryKey
+# data is a n-tuple n is number of fields for this type 
+def updateRecord(type, primaryKey, data):
+    global success
+    df = pd.read_csv("SystemCatalogue.csv", index_col="type")
+    fieldnum = df.loc[type].get("fieldnum")
+    # The above code will be used to get number of fields
+   
+    # field number - planet field != argument field number + primary key
+    if fieldnum-1 != len(data) + 1:
+        success = False
+        return
+
+    filename, pageIndex, recordIndex, _ = searchRecord(type, primaryKey)
+    
+    # if enters this condition it means we do not have this primary key in database
+    if pageIndex == -1:
+        success = False
+        return  #we can do another control
+
+    #if not there is a file with that record
+    success = True
+    #prepare new record line 
+    new_record = "E226-S187," + primaryKey
+    for i in data:
+        new_record = new_record + "," + i
+    
+    for i in range(10-len(data)):
+        new_record = new_record + ','
+    new_record = new_record + '\n'
+
+    infile = open(filename, 'r')
+    tempname = "temp0.txt"
+    tempfile = open(tempname, 'w')
+
+    for i in range(8):
+        str = ''
+        if i == pageIndex:
+            str = str + infile.readline()
+            for j in range(11):
+                if j == recordIndex:
+                    infile.readline()
+                    str = str + new_record
+                else:
+                    str = str + infile.readline()
+            
+
+            tempfile.write(str)
+            continue
+        
+        str = ''
+        str = str + infile.readline()
+        str = str + infile.readline()
+        str = str + infile.readline()
+        str = str + infile.readline()
+        str = str + infile.readline()
+        str = str + infile.readline()
+        str = str + infile.readline()
+        str = str + infile.readline()
+        str = str + infile.readline()
+        str = str + infile.readline()
+        str = str + infile.readline()
+        str = str + infile.readline()
+
+        tempfile.write(str)
+        
+
+    infile.close()
+    tempfile.close()
+
+    os.remove(filename)
+    os.rename(tempname, filename)
+
+    return 0
+
+
+def searchWithLogger(type, key, out_file):
+    global success
+    _,page,_,record = searchRecord(type,key)
+    if page == -1:
+        success = False
+        return
+    success = True
+    out_file.write(record + "\n")
+
+
+def filterRecord(type, condition,out_file):
+    global success
+    success = False
+    #operation is for which conditional operation will be hold on real data 
+    target_field = ""    
+    if '<' in condition:
+        index = condition.find('<')
+        target_field = condition[0:index]
+        target_number = int(condition[index+1:])
+        operation = 0
+    elif '>' in condition:
+        index = condition.find('>')
+        target_field = condition[0:index]
+        target_number = int(condition[index+1:])
+        operation = 1
+    elif '=' in condition:
+        index = condition.find('=')
+        target_field = condition[0:index]
+        target_number = int(condition[index+1:])
+        operation = 2
+    else:
+        print("there is no condition in the expression")
+        return -1
+
+    df = pd.read_csv("SystemCatalogue.csv", index_col="type")
+    fields = df.loc[type].get("fields").split(" ") #fields list
+    data_files = df.loc[type].get("files").split(" ") #file list
+    num_fields = df.loc[type].get("fieldnum") #number of fields
+
+    target_f_index = -1
+    counter = 0
+    for i in fields:
+        if i == target_field:
+            target_f_index = counter
+        counter = counter + 1
+    
+
+    for i in data_files:
+        file = open(i, 'r')
+        for j in range(8):
+            page_header = file.readline() # page header
+            page_header = page_header.strip('\n')
+            page_info = page_header.split(',')
+            if page_info[0] == '1': # if page is empty not found since if we come to an empty page there is no need to a further look
+                return
+            for k in range(11):
+                record = file.readline()
+                record = record.split(',')
+                if record[0] == '':
+                    return 0       
+                if operation == 0 and int(record[target_f_index]) < target_number:
+                    success = True
+                    out_file.write(organizer(record,num_fields) + "\n")
+                elif operation == 1 and int(record[target_f_index]) > target_number:
+                    success = True
+                    out_file.write(organizer(record,num_fields) + "\n")
+                elif operation == 2 and int(record[target_f_index]) == target_number:
+                    success = True
+                    out_file.write(organizer(record,num_fields) + "\n")
+                else:
+                    continue
+
+
+    
+    return 0
+
+
 
 
 
@@ -629,6 +805,12 @@ with open(inputFile, 'r') as f:         #read input file
                     deleteRecord(operation[2:])
                 elif operation[0] == "list":
                     listRecords(operation[2], out_file)
+                elif operation[0] == "update":
+                    updateRecord(type=operation[2], primaryKey=operation[3], data = operation[4:])
+                elif operation[0] == "search":
+                    searchWithLogger(type=operation[2], key = operation[3], out_file=out_file)
+                elif operation[0] == "filter":
+                    filterRecord(type = operation[2],condition=operation[3],out_file=out_file)
             
             
         if operation[0]!="logout":                                      #write log

@@ -4,8 +4,18 @@ login useralpha X3n0m3R
 create type animal 4 name age height weight
 inherit type human animal alias occupation
 create record human 3 MarkWebbler 27 178 81 Shadow engineer
+create record human 4 Gokay 20 186 75 Falling driver
+create record human 5 Kiymet 24 170 55 Spider pilot
+create record human 1 Kadir 25 160 65 Dying trader
 list record human
+update record human 3 MarkWebbler 24 176 90 Spider farmer
+list record human
+update record human 7 Palyaco 24 176 90 Spider farmer
+search record human 3
+search record human 7
 list record animal
+filter record human age<25
+filter record human age<5
 logout
 list record human
 list type
